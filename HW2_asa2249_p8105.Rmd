@@ -23,6 +23,7 @@ knitr::opts_chunk$set(echo = TRUE)
   library(janitor)
   library(tidyr)
   library(dplyr)
+  library(lubridate)
 ```
 
 Problem_1
@@ -45,7 +46,6 @@ Write a paragraph about these data; you are encouraged to use inline R. Be sure 
 
 # Use the read_excel function to read in the Mr. Trash Wheel sheet dataset. skip 1st row which contains an image
 trash_data = read_excel("./data/Trash-Wheel-Collection-Totals-7-2020-2.xlsx", skip =1, na = "")
-
 #let's look at a quick glimpse of the data
 head(trash_data, 5)
 
@@ -107,4 +107,133 @@ trash_data %>%
 
 #the precipitation_data has 24 observations of 3 variables, which are Month, Total (total rainfall), and Year. the trash_data dataset has 533 observations of 17 variables (although this is including NA observations, which come out to 80, so there are really 453 obervations). Key variables include dumpster # (for id), month, year, as well as the types of trash picked up, like glass_bottles, grocery_bags, and cigarette_butts. the total precipitation in 2018 was 70.33 inches, and the median number of sports balls in a dumpster in 2019 is 10.030303 sports balls. 
 summary(trash_data)
+```
+
+Problem 2
+
+This problem uses the FiveThirtyEight data; these data were gathered to create the interactive graphic on this page. In particular, we’ll use the data in pols-month.csv, unemployment.csv, and snp.csv. Our goal is to merge these into a single data frame using year and month as keys across datasets.
+
+First, clean the data in pols-month.csv. Use separate() to break up the variable mon into integer variables year, month, and day; replace month number with month name; create a president variable taking values gop and dem, and remove prez_dem and prez_gop; and remove the day variable.
+
+Second, clean the data in snp.csv using a similar process to the above. For consistency across datasets, arrange according to year and month, and organize so that year and month are the leading columns.
+
+Third, tidy the unemployment data so that it can be merged with the previous datasets. This process will involve switching from “wide” to “long” format; ensuring that key variables have the same name; and ensuring that key variables take the same values.
+
+Join the datasets by merging snp into pols, and merging unemployment into the result.
+
+Write a short paragraph about these datasets. Explain briefly what each dataset contained, and describe the resulting dataset (e.g. give the dimension, range of years, and names of key variables).
+
+Note: we could have used a date variable as a key instead of creating year and month keys; doing so would help with some kinds of plotting, and be a more accurate representation of the data. Date formats are tricky, though. For more information check out the lubridate package in the tidyverse.
+
+
+## Problem 2
+```{r Problem_2, echo=TRUE}
+#read the csv data in, clean the names into lower snake case, and seperate the mon variable into year, month and day.
+pols_data = read_csv(file = "./data/fivethirtyeight_datasets/pols-month.csv") %>%
+  janitor::clean_names() %>%
+  separate(mon, into = c("year", "month", "day"))
+
+typeof(pols_data$month)
+
+#convert month to character month (ie 1 to January)
+pols_data$month <- as.numeric(pols_data$month)
+pols_data$month <- month.name[pols_data$month]
+
+typeof(pols_data$prez_gop)
+pols_data$prez_gop <- as.character(pols_data$prez_gop)
+#create a president variable taking values gop and dem
+#pols_data  %>% mutate(
+#    prez_gop = replace(prez_gop, gop == "0", "gop"))
+
+#pols_data  %>% mutate(
+#    prez_gop = recode(prez_gop, `0` = "0", `1` = "gop"))
+
+#pols_data  %>% recode(prez_gop, `0` = "0", `1` = "gop")
+
+#pols_data$prez_gop[prez_gop == 1] <- "gop"
+
+pols_data$prez_gop=ifelse(pols_data$prez_gop==1, "gop","dem")
+
+pols_data$president <- pols_data$prez_gop
+
+#drop day, prez_dem and prez_gop variables
+pols_data = subset(pols_data, select = c(year, month, president))
+
+#get rid of 19 and 20 in year for pols_data, so year format matches snp
+pols_data$year <- substring(pols_data$year, 3)
+
+
+#Second, clean the data in snp.csv using a similar process to the above. For consistency across datasets, arrange according to year and month, and organize so that year and month are the leading columns.
+snp_data = read_csv(file = "./data/fivethirtyeight_datasets/snp.csv") %>%
+  janitor::clean_names() %>%
+  separate(date, into = c("month", "day", "year")) 
+
+#convert month to character month (ie 1 to January)
+snp_data$month <- as.numeric(snp_data$month)
+snp_data$month <- month.name[snp_data$month]
+
+#reorder columns
+snp_data <- snp_data[, c(3,1,2, 4)]
+
+#get rid of day variable in snp_data
+snp_data = subset(snp_data, select = c(year, month, close))
+
+#tidy unemployment_data, converting it from wide to long format, ensuring key variables are similarly named, and have similar values
+
+unemployment_data = read_csv(file = "./data/fivethirtyeight_datasets/unemployment.csv") %>%
+  janitor::clean_names() 
+
+unemployment_data <- pivot_longer(
+    unemployment_data, 
+    jan:dec,
+    names_to = "month", 
+    values_to = "unemployment")
+
+#get rid of 19 and 20 in year for pols_data, so year format matches snp and pols
+unemployment_data$year <- substring(unemployment_data$year, 3)
+
+#rename unemployment_data month variable to match snp and pols data (ie feb -> February)
+#unemployment_data$month <- match(unemployment_data$month,month.abb)
+#unemployment_data$month <- month.abb[unemployment_data$month]
+#unemployment_data$month <- month.name[unemployment_data$month]
+#couldn't do it by month.abb, so doing it manually
+
+unemployment_data$month[unemployment_data$month=="jan" ] <- "January"
+unemployment_data$month[unemployment_data$month=="feb" ] <- "February"
+unemployment_data$month[unemployment_data$month=="mar" ] <- "March"
+unemployment_data$month[unemployment_data$month=="apr" ] <- "April"
+unemployment_data$month[unemployment_data$month=="may" ] <- "May"
+unemployment_data$month[unemployment_data$month=="jun" ] <- "June"
+unemployment_data$month[unemployment_data$month=="jul" ] <- "July"
+unemployment_data$month[unemployment_data$month=="aug" ] <- "August"
+unemployment_data$month[unemployment_data$month=="sep" ] <- "September"
+unemployment_data$month[unemployment_data$month=="oct" ] <- "October"
+unemployment_data$month[unemployment_data$month=="nov" ] <- "November"
+unemployment_data$month[unemployment_data$month=="dec" ] <- "December"
+
+
+#Join the datasets by merging snp into pols, and merging unemployment into the result.
+#join the datasets
+merged_political_data = 
+  full_join(pols_data, snp_data)
+#note there is no close data before 1950
+
+merged_political_data =
+  full_join(merged_political_data, unemployment_data)
+
+head(merged_political_data)
+#the snp dataset contianed information on the closing value of Standard & Poor’s stock market index (S&P), an economic indicator, and a corresponding date. the pols dataset contained information about the prevailing political party on a certain date (ie whether there was a democratic president in 1954). The unemployment dataset tracked unemployment rates since 1948. There is a slight disconnect between datasets, where unemployment was only tracked in 1948, and S&P in 1950, so some values are missing from before then. I decided to remove irrelevant information from pols_data, like the number of democratic governors, because they could get in the way of interpreting results unless analyzed with an understanding of policital precedence (ie a certain amount of senators of the same party are needed to pass bills alongside the president). The resulting dataset, merged_political_data, had 828 observations of 5 variables, year, month, president (their corresponding presidential party), closing price of S&P, and unemployment rates. The range of years goes from 1947 to 2015, although as noted before, S&P and unemployment aren't tracked until 1950 and 1948, respectively. 
+```
+
+Problem 3
+
+This problem uses data from NYC Open data on the popularity of baby names, and can be downloaded here.
+
+Load and tidy the data. Note that, although these data may seem fairly well formatted initially, the names of a categorical predictor and the case structure of string variables changed over time; you’ll need to address this in your data cleaning. Also, some rows seem duplicated, and these will need to be removed (hint: google something like “dplyr remove duplicate rows” to get started).
+
+Produce a well-structured, reader-friendly table showing the rank in popularity of the name “Olivia” as a female baby name over time; this should have rows for ethnicities and columns for year. Produce a similar table showing the most popular name among male children over time.
+
+Finally, for male, white non-hispanic children born in 2016, produce a scatter plot showing the number of children with a name (y axis) against the rank in popularity of that name (x axis).
+
+```{r Problem_2, echo=TRUE}
 ```
