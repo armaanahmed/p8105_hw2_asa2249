@@ -235,5 +235,69 @@ Produce a well-structured, reader-friendly table showing the rank in popularity 
 
 Finally, for male, white non-hispanic children born in 2016, produce a scatter plot showing the number of children with a name (y axis) against the rank in popularity of that name (x axis).
 
-```{r Problem_2, echo=TRUE}
+```{r Problem_3, echo=TRUE}
+babynames = read_csv(file = "./data/Popular_Baby_Names.csv") %>%
+  janitor::clean_names()
+
+
+categories <- unique(babynames$ethnicity) 
+categories
+#here you can see that "Asian and Pacific Islander" becomes "Asian and Paci", "Black Non Hispanic becomes "Black Non Hisp", and "White Non Hispanic" becomes "White Non Hisp". Let's fix that.
+babynames$ethnicity[babynames$ethnicity=="ASIAN AND PACIFIC ISLANDER" ] <- "ASIAN AND PACI"
+babynames$ethnicity[babynames$ethnicity=="BLACK NON HISPANIC" ] <- "BLACK NON HISP"
+babynames$ethnicity[babynames$ethnicity=="WHITE NON HISPANIC" ] <- "WHITE NON HISP"
+
+categories <- unique(babynames$ethnicity) 
+categories
+#now we only have 4 categories, "ASIAN AND PACI". "BLACK NON HISP", "HISPANIC", "WHITE NON HISP"
+
+#remove duplicate rows using dplyr
+babynames <- unique(babynames)
+
+#make sure case is normalized (lower), this messes with accent marks in names, so removed
+#tolower(babynames$childs_first_name)
+
+#create a table
+
+#filter so the only name is Olivia, and create a table showing the rank in popularity of "Olivia", with rows for ethnicity and columns for year
+olivia <- filter(babynames, childs_first_name == "Olivia")
+olivia = 
+  pivot_wider(
+    olivia, 
+    ethnicity,
+    names_from = "year_of_birth", 
+    values_from = "rank"
+    )
+
+#now lets do this for the mostpopular name among male children over time
+malebabynames <- filter(babynames, gender == "MALE")
+malebabynames <- filter(malebabynames, rank == "1")
+malebabynames = 
+  pivot_wider(
+    malebabynames, 
+    ethnicity,
+    names_from = "year_of_birth", 
+    values_from = "childs_first_name"
+    )
+#this chart shows that the most popular name by year 
+
+whitenonhispanic2016 <- filter(babynames, ethnicity == "WHITE NON HISP")
+whitenonhispanic2016 <- filter(whitenonhispanic2016, year_of_birth == "2016")
+whitenonhispanic2016 <- filter(whitenonhispanic2016, gender == "MALE")
+
+# generate a scatterplot of rank (x) vs name (y), with 
+# points colored by species
+whitenonhispanic2016_plot = ggplot(data = whitenonhispanic2016, aes(x = rank, y = childs_first_name)) + geom_point() + ggtitle("Name vs Rank of Non-Hispanic Children born in 2016") + xlab("name") + ylab("rank")
+plot(whitenonhispanic2016_plot)
+
+# save the scatterplot
+ggsave("nonhispanicwhite2016_scatter_plot.pdf", height = 4, width = 6)
+
+Finally, for male, white non-hispanic children born in 2016, produce a scatter plot showing the number of children with a name (y axis) against the rank in popularity of that name (x axis).
+library(plotly)
+whitenonhispanic2016_plotly <- plot_ly(whitenonhispanic2016, x = ~rank, y = ~childs_first_name, type = 'scatter', mode = 'markers', marker = list(size = ~Price/10, opacity = 0.5, color = ~Price, colors = 'Paired'))
+pricebyneighborhoodplot <- pricebyneighborhoodplot %>% layout(title = 'Average Price by Neighborhood in NYC',
+         xaxis = list(showgrid = FALSE, showticklabels=FALSE, visible = FALSE),
+         yaxis = list(showgrid = FALSE))
+
 ```
