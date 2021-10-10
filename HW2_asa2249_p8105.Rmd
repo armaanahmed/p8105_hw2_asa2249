@@ -1,0 +1,110 @@
+---
+title: "HW2_asa2249_p8105"
+author: "Armaan Ahmed"
+date: "10/10/2021"
+output: html_document
+
+# This is a script for HW2 for BIST8105, Data Science, taught by Professor Jeff 
+# Goldsmith. In this script, I will demonstrate usage of R Markdown, GitHub for version control, and the use of R Projects. 
+# I will also demonstrate data import concepts in R, perform data manipulation with dplyr, 
+# and work with Tidy data and relational datasets.
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## load necessary packages for the script
+```{r load_packages, message=FALSE}
+  library(tidyverse)
+  library(ggplot2)
+  library(readxl)
+  library(janitor)
+  library(tidyr)
+  library(dplyr)
+```
+
+Problem_1
+Read and clean the Mr. Trash Wheel sheet:
+
+specify the sheet in the Excel file and to omit non-data entries (rows with notes / figures; columns containing notes) using arguments in read_excel
+use reasonable variable names
+omit rows that do not include dumpster-specific data
+round the number of sports balls to the nearest integer
+Read and clean precipitation data for 2018 and 2019. For each, omit rows without precipitation data and add a variable for year. Next, combine precipitation datasets and convert month to a character variable (the variable month.name is built into R and should be useful).
+
+Write a paragraph about these data; you are encouraged to use inline R. Be sure to note the number of observations in both resulting datasets, and give examples of key variables. For available data, what was the total precipitation in 2018? What was the median number of sports balls in a dumpster in 2019?
+
+
+
+## Problem 1
+```{r Problem_1, echo=TRUE}
+# I decided to set echo to true, so you can see both my code and the results in
+# the knitted HTML file.
+
+# Use the read_excel function to read in the Mr. Trash Wheel sheet dataset. skip 1st row which contains an image
+trash_data = read_excel("./data/Trash-Wheel-Collection-Totals-7-2020-2.xlsx", skip =1, na = "")
+
+#let's look at a quick glimpse of the data
+head(trash_data, 5)
+
+#names of variables
+names(trash_data)
+
+#let's convert all column titles to snake_case
+trash_data = janitor::clean_names(trash_data)
+names(trash_data)
+
+#let's get rid of rows with non dumpster-specific data (aka ones that contain NA)
+trash_data %>% drop_na()
+head(trash_data, 10)
+
+#I wasn't able to use drop_na() successful, so I found a work around that copies the dataframe and sets those non specific dumpster
+# values to NA across the board
+trash_data <- trash_data[trash_data$Dumpster != "NA", ]
+
+#round sports ball to nearest integer
+trash_data$sports_balls = round(trash_data$sports_balls)
+
+#read and clean precipitation data - skip first row
+precipitation19_data = read_excel("./data/Trash-Wheel-Collection-Totals-7-2020-2.xlsx", skip =1, na = "", sheet = 6)
+precipitation18_data = read_excel("./data/Trash-Wheel-Collection-Totals-7-2020-2.xlsx", skip =1, na = "", sheet = 7)
+
+#add a variable for year
+precipitation19_data$Year <- "2019"
+precipitation18_data$Year <- "2018"
+
+#clean up data
+precipitation19_data <- precipitation19_data[precipitation19_data$Month != "NA", ]
+precipitation18_data <- precipitation18_data[precipitation18_data$Month != "NA", ]
+
+#get rid of NA row 13
+precipitation19_data <- precipitation19_data[c(1:12), ]
+precipitation18_data <- precipitation18_data[c(1:12), ]
+
+
+#join the datasets
+precipitation_data = 
+  full_join(precipitation18_data, precipitation19_data)
+
+
+#convert month to character month (ie 1 to January)
+precipitation_data$Month <- month.name[precipitation_data$Month]
+
+#lets talk about the data with descriptive statistics
+summary(trash_data)
+total_precipitation_2018 <- sum(precipitation18_data$Total)
+#70.83
+
+median(trash_data$sports_balls)
+#11
+
+trash_data %>%
+  group_by(year) %>%
+  summarise_at(vars(sports_balls), list(name = mean))
+#2019 had a median of 10.030303, while the total median over the years was 11.
+
+#the precipitation_data has 24 observations of 3 variables, which are Month, Total (total rainfall), and Year. the trash_data dataset has 533 observations of 17 variables (although this is including NA observations, which come out to 80, so there are really 453 obervations). Key variables include dumpster # (for id), month, year, as well as the types of trash picked up, like glass_bottles, grocery_bags, and cigarette_butts. the total precipitation in 2018 was 70.33 inches, and the median number of sports balls in a dumpster in 2019 is 10.030303 sports balls. 
+summary(trash_data)
+```
