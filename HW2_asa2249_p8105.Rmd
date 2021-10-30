@@ -57,16 +57,12 @@ trash_data = janitor::clean_names(trash_data)
 names(trash_data)
 
 #let's get rid of rows with non dumpster-specific data (aka ones that contain NA)
-#trash_data %>% drop_na()
-#head(trash_data, 10)
+trash_data %>% drop_na()
+head(trash_data, 10)
 
 #I wasn't able to use drop_na() successful, so I found a work around that copies the dataframe and sets those non specific dumpster
 # values to NA across the board
-#trash_data %>% drop_na()
-#trash_data <- trash_data[trash_data$Dumpster != "NA", ]
-trash_data <- trash_data[1:(length(trash_data)-3)] #drop last 3 columns
-trash_data <- na.omit(trash_data) 
-
+trash_data <- trash_data[trash_data$Dumpster != "NA", ]
 
 #round sports ball to nearest integer
 trash_data$sports_balls = round(trash_data$sports_balls)
@@ -111,8 +107,6 @@ trash_data %>%
 
 #the precipitation_data has 24 observations of 3 variables, which are Month, Total (total rainfall), and Year. the trash_data dataset has 533 observations of 17 variables (although this is including NA observations, which come out to 80, so there are really 453 obervations). Key variables include dumpster # (for id), month, year, as well as the types of trash picked up, like glass_bottles, grocery_bags, and cigarette_butts. the total precipitation in 2018 was 70.33 inches, and the median number of sports balls in a dumpster in 2019 is 10.030303 sports balls. 
 summary(trash_data)
-head(trash_data)
-head(precipitation_data)
 ```
 
 Problem 2
@@ -227,7 +221,7 @@ merged_political_data =
 merged_political_data =
   full_join(merged_political_data, unemployment_data)
 
-tail(merged_political_data, 20) #showing a lot because there isn't closing price and unemployment data early on
+head(merged_political_data)
 #the snp dataset contianed information on the closing value of Standard & Poor’s stock market index (S&P), an economic indicator, and a corresponding date. the pols dataset contained information about the prevailing political party on a certain date (ie whether there was a democratic president in 1954). The unemployment dataset tracked unemployment rates since 1948. There is a slight disconnect between datasets, where unemployment was only tracked in 1948, and S&P in 1950, so some values are missing from before then. I decided to remove irrelevant information from pols_data, like the number of democratic governors, because they could get in the way of interpreting results unless analyzed with an understanding of policital precedence (ie a certain amount of senators of the same party are needed to pass bills alongside the president). The resulting dataset, merged_political_data, had 828 observations of 5 variables, year, month, president (their corresponding presidential party), closing price of S&P, and unemployment rates. The range of years goes from 1947 to 2015, although as noted before, S&P and unemployment aren't tracked until 1950 and 1948, respectively. 
 ```
 
@@ -292,17 +286,18 @@ whitenonhispanic2016 <- filter(whitenonhispanic2016, year_of_birth == "2016")
 whitenonhispanic2016 <- filter(whitenonhispanic2016, gender == "MALE")
 
 # generate a scatterplot of rank (x) vs name (y), with 
-library(plotly)
-whitenonhispanic2016_plot = ggplot(data = whitenonhispanic2016, aes(x = rank, y = childs_first_name)) + geom_point() + ggtitle("Name vs Rank of Non-Hispanic Children born in 2016") + xlab("rank (1 to 100)") + ylab("name") +
-  theme(axis.text.y=element_blank())
-int <- plotly_build(whitenonhispanic2016_plot) 
-int
+# points colored by species
+whitenonhispanic2016_plot = ggplot(data = whitenonhispanic2016, aes(x = rank, y = childs_first_name)) + geom_point() + ggtitle("Name vs Rank of Non-Hispanic Children born in 2016") + xlab("name") + ylab("rank")
+plot(whitenonhispanic2016_plot)
+
 # save the scatterplot
 ggsave("nonhispanicwhite2016_scatter_plot.pdf", height = 4, width = 6)
-head(babynames)
-head(olivia)
-head(whitenonhispanic2016)
-head(malebabynames)
 
+Finally, for male, white non-hispanic children born in 2016, produce a scatter plot showing the number of children with a name (y axis) against the rank in popularity of that name (x axis).
+library(plotly)
+whitenonhispanic2016_plotly <- plot_ly(whitenonhispanic2016, x = ~rank, y = ~childs_first_name, type = 'scatter', mode = 'markers', marker = list(size = ~Price/10, opacity = 0.5, color = ~Price, colors = 'Paired'))
+pricebyneighborhoodplot <- pricebyneighborhoodplot %>% layout(title = 'Average Price by Neighborhood in NYC',
+         xaxis = list(showgrid = FALSE, showticklabels=FALSE, visible = FALSE),
+         yaxis = list(showgrid = FALSE))
 
 ```
